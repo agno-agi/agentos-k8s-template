@@ -1,5 +1,8 @@
-# PostgreSQL + PgVector StatefulSet
-# For production, consider a managed database (RDS, Cloud SQL, etc.)
+# PostgreSQL + PgVector for local development
+# For production, use a managed database (RDS, Cloud SQL, etc.)
+#
+# Uses emptyDir for storage — data is lost when the pod is deleted.
+# This is fine for local dev. For persistence, switch to a StatefulSet with PVC.
 apiVersion: v1
 kind: Service
 metadata:
@@ -11,15 +14,13 @@ spec:
   ports:
     - port: 5432
       targetPort: 5432
-  clusterIP: None
 ---
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: agentos-db
   namespace: agentos
 spec:
-  serviceName: agentos-db
   replicas: 1
   selector:
     matchLabels:
@@ -52,7 +53,7 @@ spec:
                   key: DB_DATABASE
           volumeMounts:
             - name: pgdata
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql
           resources:
             requests:
               cpu: "100m"
@@ -76,12 +77,6 @@ spec:
                 - ai
             initialDelaySeconds: 15
             periodSeconds: 30
-  volumeClaimTemplates:
-    - metadata:
-        name: pgdata
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        storageClassName: hostpath
-        resources:
-          requests:
-            storage: 5Gi
+      volumes:
+        - name: pgdata
+          emptyDir: {}
