@@ -1,0 +1,32 @@
+# Optional: Expose Agent OS externally via Ingress
+# Requires an Ingress controller (nginx, traefik, etc.) in your cluster
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: agentos
+  namespace: agentos
+  annotations:
+    # Increase timeouts for long-running agent requests
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    # Uncomment for TLS with cert-manager
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: agentos.yourdomain.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: agentos
+                port:
+                  number: 80
+  # Uncomment for TLS
+  # tls:
+  #   - hosts:
+  #       - agentos.yourdomain.com
+  #     secretName: agentos-tls

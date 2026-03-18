@@ -1,0 +1,87 @@
+# PostgreSQL + PgVector StatefulSet
+# For production, consider a managed database (RDS, Cloud SQL, etc.)
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentos-db
+  namespace: agentos
+spec:
+  selector:
+    app: agentos-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+  clusterIP: None
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: agentos-db
+  namespace: agentos
+spec:
+  serviceName: agentos-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agentos-db
+  template:
+    metadata:
+      labels:
+        app: agentos-db
+    spec:
+      containers:
+        - name: postgres
+          image: agnohq/pgvector:18
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: agentos-config
+                  key: DB_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: agentos-secrets
+                  key: DB_PASS
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: agentos-config
+                  key: DB_DATABASE
+          volumeMounts:
+            - name: pgdata
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - ai
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - ai
+            initialDelaySeconds: 15
+            periodSeconds: 30
+  volumeClaimTemplates:
+    - metadata:
+        name: pgdata
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: hostpath
+        resources:
+          requests:
+            storage: 5Gi

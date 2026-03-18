@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentos-config
+  namespace: agentos
+data:
+  RUNTIME_ENV: "prd"
+  DB_HOST: "agentos-db"
+  DB_PORT: "5432"
+  DB_USER: "ai"
+  DB_DATABASE: "ai"
+  PYTHONPATH: "/app"
